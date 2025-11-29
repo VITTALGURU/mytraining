@@ -1,0 +1,238 @@
+<!--
+Single-file calculator website
+Save this as web_calculator.html and open in a browser.
+Features:
+ - Responsive calculator UI
+ - Click and keyboard input
+ - Basic arithmetic, parentheses, decimal
+ - Clear (C), Backspace (⌫), +/- (negate), and Copy result
+ - Input sanitization before evaluation
+-->
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Web Calculator</title>
+  <style>
+    :root{
+      --bg:#0f1724; /* dark navy */
+      --panel:#111827;
+      --accent:#06b6d4; /* teal */
+      --btn:#1f2937;
+      --btn-ops:#111827;
+      --text:#e6eef6;
+      --muted:#94a3b8;
+      font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;min-height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#071029 0%, #07111b 100%);color:var(--text);
+      padding:24px;
+    }
+    .card{
+      width:380px;max-width:96vw;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:16px;padding:18px;box-shadow:0 8px 30px rgba(2,6,23,0.7);
+    }
+    .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .title{font-weight:600;font-size:18px}
+    .subtitle{font-size:12px;color:var(--muted)}
+
+    .display{
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:10px;padding:14px;min-height:72px;display:flex;flex-direction:column;justify-content:center;align-items:flex-end;gap:6px;margin-bottom:12px;border:1px solid rgba(255,255,255,0.03);
+    }
+    .expr{font-size:14px;color:var(--muted);word-break:break-all}
+    .result{font-size:24px;font-weight:600}
+
+    .pad{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    .btn{background:var(--btn);border-radius:10px;padding:16px 10px;text-align:center;font-size:16px;cursor:pointer;border:1px solid rgba(255,255,255,0.02);user-select:none}
+    .btn:active{transform:translateY(1px)}
+    .btn--op{background:var(--btn-ops);color:var(--accent);font-weight:600}
+    .btn--wide{grid-column:span 2}
+    .btn--danger{background:#3b1f1f;color:#ffdede}
+    .small{font-size:13px}
+
+    .footer{display:flex;gap:8px;align-items:center;margin-top:12px}
+    .linkbtn{background:transparent;border:1px dashed rgba(255,255,255,0.03);color:var(--muted);padding:8px 10px;border-radius:8px;font-size:13px;cursor:pointer}
+
+    @media (max-width:420px){.card{padding:14px}}
+  </style>
+</head>
+<body>
+  <div class="card" role="application" aria-label="Calculator">
+    <div class="header">
+      <div>
+        <div class="title">Web Calculator</div>
+        <div class="subtitle">Click or type (Enter = =, Backspace = ⌫)</div>
+      </div>
+      <div style="text-align:right">
+        <button id="copyBtn" class="linkbtn">Copy</button>
+      </div>
+    </div>
+
+    <div class="display" id="display">
+      <div class="expr" id="expr">0</div>
+      <div class="result" id="result">0</div>
+    </div>
+
+    <div class="pad" id="pad">
+      <div class="btn btn--danger" data-action="clear">C</div>
+      <div class="btn" data-action="neg">+/-</div>
+      <div class="btn" data-action="back">⌫</div>
+      <div class="btn btn--op" data-value="/">÷</div>
+
+      <div class="btn" data-value="7">7</div>
+      <div class="btn" data-value="8">8</div>
+      <div class="btn" data-value="9">9</div>
+      <div class="btn btn--op" data-value="*">×</div>
+
+      <div class="btn" data-value="4">4</div>
+      <div class="btn" data-value="5">5</div>
+      <div class="btn" data-value="6">6</div>
+      <div class="btn btn--op" data-value="-">−</div>
+
+      <div class="btn" data-value="1">1</div>
+      <div class="btn" data-value="2">2</div>
+      <div class="btn" data-value="3">3</div>
+      <div class="btn btn--op" data-value="+">+</div>
+
+      <div class="btn" data-value="0" class="btn--wide">0</div>
+      <div class="btn" data-value=".">.</div>
+      <div class="btn btn--op" data-action="equals">=</div>
+    </div>
+
+    <div class="footer">
+      <button class="linkbtn" id="openFile">Save as HTML</button>
+      <div style="flex:1"></div>
+      <div class="subtitle">Made with ❤️</div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const exprEl = document.getElementById('expr');
+      const resultEl = document.getElementById('result');
+      const pad = document.getElementById('pad');
+      const copyBtn = document.getElementById('copyBtn');
+      let expr = '';
+
+      function updateDisplay(){
+        exprEl.textContent = expr || '0';
+        const val = safeEval(expr);
+        resultEl.textContent = (val === null) ? '—' : String(val);
+      }
+
+      function pushValue(v){
+        // prevent multiple leading zeros
+        if(expr === '0' && /[0-9]/.test(v)) expr = v;
+        else expr += v;
+        updateDisplay();
+      }
+
+      function safeEval(s){
+        if(!s) return 0;
+        // allow digits, operators, parentheses, decimal and spaces only
+        const allowed = /^[0-9+\-*/().\s]*$/;
+        if(!allowed.test(s)) return null;
+        try{
+          // eslint-disable-next-line no-new-func
+          const res = Function('return (' + s + ')')();
+          if(typeof res === 'number' && isFinite(res)){
+            // trim to 12 significant digits
+            return Math.round((res + Number.EPSILON) * 1e12) / 1e12;
+          }
+          return null;
+        }catch(e){
+          return null;
+        }
+      }
+
+      pad.addEventListener('click', (e)=>{
+        const btn = e.target.closest('.btn');
+        if(!btn) return;
+        const val = btn.getAttribute('data-value');
+        const action = btn.getAttribute('data-action');
+
+        if(action === 'clear'){
+          expr=''; updateDisplay();
+        }else if(action === 'back'){
+          expr = expr.slice(0,-1); updateDisplay();
+        }else if(action === 'neg'){
+          // try to negate last number
+          expr = toggleNegate(expr); updateDisplay();
+        }else if(action === 'equals'){
+          const v = safeEval(expr);
+          if(v !== null){ expr = String(v); updateDisplay(); }
+        }else if(val){
+          pushValue(val);
+        }
+      });
+
+      function toggleNegate(s){
+        // simple approach: if last token is a number, wrap it in (0 - n)
+        const m = s.match(/(.*?)([-+/*(])?([0-9.]+)\s*$/);
+        if(!m) return s;
+        const prefix = m[1] || '';
+        const sep = m[2] || '';
+        const num = m[3];
+        if(sep === '-' && prefix.endsWith('(') && prefix.slice(-2).includes('(')){
+          // crude: if already negated, remove surrounding (0 - n)
+          return s; // leave it
+        }
+        // replace last number with (0 - number)
+        return prefix + (sep || '') + '(0-' + num + ')';
+      }
+
+      // keyboard support
+      window.addEventListener('keydown', (ev)=>{
+        if(ev.key=== 'Enter'){
+          ev.preventDefault();
+          const v = safeEval(expr);
+          if(v !== null){ expr = String(v); updateDisplay(); }
+          return;
+        }
+        if(ev.key === 'Backspace'){
+          expr = expr.slice(0,-1); updateDisplay();
+          return;
+        }
+        if(ev.key === 'Escape'){
+          expr = ''; updateDisplay(); return;
+        }
+        const allowed = '0123456789+-*/().';
+        if(allowed.includes(ev.key)){
+          pushValue(ev.key);
+        }
+      });
+
+      copyBtn.addEventListener('click', async ()=>{
+        const text = resultEl.textContent;
+        try{
+          await navigator.clipboard.writeText(text);
+          copyBtn.textContent = 'Copied';
+          setTimeout(()=> copyBtn.textContent = 'Copy',900);
+        }catch(e){
+          alert('Clipboard unavailable');
+        }
+      });
+
+      // Save/Download the current page as HTML for user convenience
+      document.getElementById('openFile').addEventListener('click', ()=>{
+        const html = '<!doctype html>\n' + document.documentElement.outerHTML;
+        const blob = new Blob([html], {type:'text/html'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'web_calculator.html';
+        document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+      });
+
+      // initial
+      updateDisplay();
+
+      // expose for debugging (optional)
+      window._calc = {getExpr: ()=>expr, setExpr:(v)=>{expr=v;updateDisplay()}};
+    })();
+  </script>
+</body>
+</html>
