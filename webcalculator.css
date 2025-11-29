@@ -1,0 +1,37 @@
+<div class="display" id="display">
+  <div class="expr" id="expr">0</div>
+  <div class="result" id="result">0</div>
+</div>
+
+<div class="pad" id="pad">
+  <div class="btn btn--danger" data-action="clear">C</div>
+  <div class="btn" data-action="neg">+/-</div>
+  <div class="btn" data-action="back">⌫</div>
+  <div class="btn btn--op" data-value="/">÷</div>
+
+  <div class="btn" data-value="7">7</div>
+  <div class="btn" data-value="8">8</div>
+  <div class="btn" data-value="9">9</div>
+  <div class="btn btn--op" data-value="*">×</div>
+
+  <div class="btn" data-value="4">4</div>
+  <div class="btn" data-value="5">5</div>
+  <div class="btn" data-value="6">6</div>
+  <div class="btn btn--op" data-value="-">−</div>
+
+  <div class="btn" data-value="1">1</div>
+  <div class="btn" data-value="2">2</div>
+  <div class="btn" data-value="3">3</div>
+  <div class="btn btn--op" data-value="+">+</div>
+
+  <!-- Fixed: ensure btn--wide is applied correctly -->
+  <div class="btn btn--wide" data-value="0">0</div>
+  <div class="btn" data-value=".">.</div>
+  <div class="btn btn--op" data-action="equals">=</div>
+</div>
+
+<div class="footer">
+  <button class="linkbtn" id="openFile">Save as HTML</button>
+  <div style="flex:1"></div>
+  <div class="subtitle">Made with ❤️</div>
+</div>
